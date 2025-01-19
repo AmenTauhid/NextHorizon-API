@@ -49,7 +49,7 @@ async def generate_content(request: ChatPromptRequest):
 @app.get("/jobs/search")
 async def jobs_search_endpoint(
     page: int = Query(0, description="Page index (0-based)."),
-    limit: int = Query(6, description="Number of results per page."),
+    limit: int = Query(7, description="Number of results per page."),
     posted_at_max_age_days: int = Query(14, description="Max age of job postings in days."),
     order_desc: bool = Query(True, description="Sort descending if True."),
     order_field: str = Query("date_posted", description="Field to sort on."),
