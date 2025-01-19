@@ -16,7 +16,23 @@ class GeminiService:
             raise ValueError("Missing api_key in config file.")
 
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+
+        # --- Updated model and system instruction ---
+        self.model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash", 
+            system_instruction="""
+            You are a helpful and informative career advisor for high school students. 
+            Your name is **Pathfinder**.
+            Your role is to guide students in exploring career paths, understanding educational requirements, and making informed decisions about their future.
+            Provide answers that are:
+            1. Clear and easy to understand, avoiding technical jargon.
+            2. Concise and to the point, without unnecessary elaboration.
+            3. Keep answers relatively short, ideally under 5-6 sentences, unless more detail is absolutely necessary.
+            4. Always stay within the context of career counseling for high school students. If a question is outside this scope, politely steer the conversation back to career-related topics.
+            """
+        )
+        # --------------------------------------------
+
         self.chat_histories = {}
 
     def load_config(self, filepath):
@@ -34,26 +50,10 @@ class GeminiService:
             if chat_id not in self.chat_histories:
                 self.chat_histories[chat_id] = []
                 # AI starts the conversation with an introductory message
-                intro_message = "Hi there! I'm your career advisor. I'm here to help you explore career options, understand your interests, and plan your future. What's on your mind today?"
+                intro_message = "Hi there! I'm Pathfinder, your career advisor. I'm here to help you explore career options, understand your interests, and plan your future. What's on your mind today?"
                 self.chat_histories[chat_id].append({"role": "model", "parts": [intro_message]})
 
             history = self.chat_histories[chat_id]
-
-            # --- System Prompt for Context Enforcement ---
-            # Note: We're now adding this to the history to send it only ONCE at the start.
-            system_prompt = """
-            You are a helpful and informative career advisor for high school students. 
-            Your role is to guide students in exploring career paths, understanding educational requirements, and making informed decisions about their future.
-            Provide answers that are:
-            1. Clear and easy to understand, avoiding technical jargon.
-            2. Concise and to the point, without unnecessary elaboration.
-            3. Formatted plainly, without any markdown formatting like bolding (**) or excessive use of quotation marks ("").
-            4. If you need to make a list, use dashes (-) instead of numbers or bullet points.
-            5. Keep answers relatively short, ideally under 5-6 sentences, unless more detail is absolutely necessary.
-            6. Always stay within the context of career counseling for high school students. If a question is outside this scope, politely steer the conversation back to career-related topics.
-            """
-            if len(history) == 1:  # Add system prompt only after the intro message
-                history.insert(0, {"role": "user", "parts": [system_prompt]})  # Insert at the beginning
 
             # Add user prompt to history
             history.append({"role": "user", "parts": [prompt]})
@@ -61,8 +61,6 @@ class GeminiService:
             # Use the chat interface to generate content
             chat = self.model.start_chat(history=history)
             response = chat.send_message(prompt)
-
-            response = chat.send_message(system_prompt + "\n" + prompt)
 
             # Parse the response before adding to history and returning
             parsed_response = self.parse_response(response.text)
@@ -81,10 +79,53 @@ class GeminiService:
             raise
 
     def parse_response(self, text: str) -> str:
-        """Parses the response text and formats it."""
-        # 1. Remove the unwanted tags:
-        formatted_text = text.replace("|n", "\n") \
-                            .replace("In-", "\n- ") \
-                            .replace("nlf", "\n") \
-                            .replace("In", "\n") 
-        return formatted_text
+        """
+        Parses and cleans the response text to remove unwanted formatting and normalize spacing.
+        
+        Args:
+            text (str): Raw text response from Gemini API
+            
+        Returns:
+            str: Cleaned and formatted text
+        """
+        # Remove quotes at the start and end of the text if they exist
+        text = text.strip('"')
+        
+        # Replace various newline representations
+        text = text.replace('\\n', '\n')  # Replace literal \n with newline
+        text = text.replace('|n', '\n')   # Replace |n with newline
+        text = text.replace('\\\\n', '\n') # Replace escaped \n with newline
+        
+        # Handle bullet points
+        text = text.replace('\\n- ', '\n• ') # Replace newline dash with bullet
+        text = text.replace('\n- ', '\n• ')  # Replace newline dash with bullet
+        text = text.replace('In- ', '\n• ')  # Replace "In-" with newline bullet
+        
+        # Clean up other special formatting
+        text = text.replace('nlf', '')    # Remove nlf
+        text = text.replace('In', '\n')   # Replace "In" with newline
+        
+        # Remove excessive quotes
+        text = text.replace('""', '"')    # Replace double quotes with single quotes
+        
+        # Fix spacing issues
+        lines = text.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            # Remove extra spaces
+            line = ' '.join(line.split())
+            cleaned_lines.append(line)
+        
+        # Join lines with proper spacing
+        text = '\n'.join(cleaned_lines)
+        
+        # Remove multiple consecutive newlines
+        while '\n\n\n' in text:
+            text = text.replace('\n\n\n', '\n\n')
+        
+        # Clean up any remaining formatting artifacts
+        text = text.replace('\\t', '    ')  # Replace tabs with spaces
+        text = text.replace('\\"', '"')     # Fix escaped quotes
+        text = text.replace('\\\'', "'")    # Fix escaped single quotes
+        
+        return text.strip()
