@@ -1,18 +1,23 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from gemini_service import GeminiService
+from theirstack_service import TheirStackJobSearchService  # Updated import
+from typing import Optional, List, Dict, Any
 import os
 
 app = FastAPI(
-    title="Gemini Chatbot API",
-    description="A chatbot API using Google's Gemini AI with in-memory context handling",
-    version="0.1.0"
+    title="Gemini Chatbot API with TheirStack Integration for NextHorizon",
+    description="A chatbot API using Google's Gemini AI, enhanced with job data from TheirStack for NextHorizon",
+    version="0.6.0"  # Updated version
 )
 
-# Initialize GeminiService (with in-memory context)
-gemini_service = GeminiService()
+# Initialize services
+gemini_service = GeminiService(config_filepath="config.yaml")
+theirstack_job_service = TheirStackJobSearchService(config_filepath="config.yaml")  # Updated instantiation
 
-# Input data model (with chat_id)
+# --- Data Models ---
+
+# Input data model for basic chat (with chat_id)
 class ChatPromptRequest(BaseModel):
     chat_id: str
     prompt: str
@@ -21,10 +26,14 @@ class ChatPromptRequest(BaseModel):
 class ErrorResponse(BaseModel):
     detail: str
 
+# --- API Endpoints ---
+
 @app.get("/")
-def hello_world():
-    name = os.environ.get("NAME", "World")
-    return f"Hello {name}!"
+async def root():
+    """
+    Simple root endpoint to verify that the API is running.
+    """
+    return {"message": "Welcome to the theirStack Job Search API! Use /jobs/search to find jobs."}
 
 @app.post("/generate", response_model=str, responses={500: {"model": ErrorResponse}})
 async def generate_content(request: ChatPromptRequest):
@@ -36,3 +45,43 @@ async def generate_content(request: ChatPromptRequest):
         return generated_text
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating content: {e}")
+
+@app.get("/jobs/search")
+async def jobs_search_endpoint(
+    page: int = Query(0, description="Page index (0-based)."),
+    limit: int = Query(1, description="Number of results per page."),
+    posted_at_max_age_days: int = Query(14, description="Max age of job postings in days."),
+    order_desc: bool = Query(True, description="Sort descending if True."),
+    order_field: str = Query("date_posted", description="Field to sort on."),
+    blur_company_data: bool = Query(False, description="Obfuscate company details."),
+    include_total_results: bool = Query(False, description="Include total result count."),
+    job_title_search: Optional[str] = Query(None, description="Search by job title."),
+    job_description_search: Optional[str] = Query(None, description="Search by job description."),
+    job_company_name_search: Optional[str] = Query(None, description="Search by company name."),
+    job_location_search: Optional[str] = Query(None, description="Search by job location."),
+    job_country_code_or: Optional[List[str]] = Query(["CA"], description="Search by job country code."),
+):
+    """
+    GET endpoint for job search.
+
+    Accepts search parameters as query parameters, uses the service function to
+    fetch results from theirStack's API, and returns the search results.
+    """
+    try:
+        results = await theirstack_job_service.search_jobs(  # Call the method on the instance
+            page=page,
+            limit=limit,
+            posted_at_max_age_days=posted_at_max_age_days,
+            order_desc=order_desc,
+            order_field=order_field,
+            blur_company_data=blur_company_data,
+            include_total_results=include_total_results,
+            job_title_search=job_title_search,
+            job_description_search=job_description_search,
+            job_company_name_search=job_company_name_search,
+            job_location_search=job_location_search,
+            job_country_code_or=job_country_code_or
+        )
+        return results
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
