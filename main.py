@@ -49,7 +49,7 @@ async def generate_content(request: ChatPromptRequest):
 @app.get("/jobs/search")
 async def jobs_search_endpoint(
     page: int = Query(0, description="Page index (0-based)."),
-    limit: int = Query(7, description="Number of results per page."),
+    limit: int = Query(1, description="Number of results per page."),
     posted_at_max_age_days: int = Query(14, description="Max age of job postings in days."),
     order_desc: bool = Query(True, description="Sort descending if True."),
     order_field: str = Query("date_posted", description="Field to sort on."),
@@ -59,13 +59,7 @@ async def jobs_search_endpoint(
     job_description_search: Optional[str] = Query(None, description="Search by job description."),
     job_company_name_search: Optional[str] = Query(None, description="Search by company name."),
     job_location_search: Optional[str] = Query(None, description="Search by job location."),
-    job_country_code_or: Optional[List[str]] = Query(["CA"], description="List of country codes (e.g., CA, US)."),
-    job_category_ids_or: Optional[List[str]] = Query(None, description="Filter by job category IDs."),
-    job_type_ids_or: Optional[List[str]] = Query(None, description="Filter by job type IDs."),
-    job_tag_ids_or: Optional[List[str]] = Query(None, description="Filter by job tag IDs."),
-    job_must_not_have_tag_ids: Optional[List[str]] = Query(None, description="Exclude jobs with these tag IDs."),
-    job_must_have_tag_ids: Optional[List[str]] = Query(None, description="Include only jobs with these tag IDs."),
-    job_location_radius_miles: Optional[int] = Query(None, description="Radius for location-based search (in miles)."),
+    job_country_code_or: Optional[List[str]] = Query(["CA"], description="Search by job country code."),
 ):
     """
     GET endpoint for job search.
@@ -86,13 +80,7 @@ async def jobs_search_endpoint(
             job_description_search=job_description_search,
             job_company_name_search=job_company_name_search,
             job_location_search=job_location_search,
-            job_country_code_or=job_country_code_or,
-            job_category_ids_or=job_category_ids_or,
-            job_type_ids_or=job_type_ids_or,
-            job_tag_ids_or=job_tag_ids_or,
-            job_must_not_have_tag_ids=job_must_not_have_tag_ids,
-            job_must_have_tag_ids=job_must_have_tag_ids,
-            job_location_radius_miles=job_location_radius_miles
+            job_country_code_or=job_country_code_or
         )
         return results
     except RuntimeError as exc:

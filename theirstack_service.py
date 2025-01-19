@@ -40,13 +40,7 @@ class TheirStackJobSearchService:
         job_description_search: Optional[str] = None,
         job_company_name_search: Optional[str] = None,
         job_location_search: Optional[str] = None,
-        job_country_code_or: Optional[List[str]] = ["CA"],
-        job_category_ids_or: Optional[List[str]] = None,
-        job_type_ids_or: Optional[List[str]] = None,
-        job_tag_ids_or: Optional[List[str]] = None,
-        job_must_not_have_tag_ids: Optional[List[str]] = None,
-        job_must_have_tag_ids: Optional[List[str]] = None,
-        job_location_radius_miles: Optional[int] = None,
+        job_country_code_or: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Service function to search jobs via theirStack API
@@ -77,18 +71,6 @@ class TheirStackJobSearchService:
             payload["job_company_name_search"] = job_company_name_search
         if job_location_search:
             payload["job_location_search"] = job_location_search
-        if job_category_ids_or:
-            payload["job_category_ids_or"] = job_category_ids_or
-        if job_type_ids_or:
-            payload["job_type_ids_or"] = job_type_ids_or
-        if job_tag_ids_or:
-            payload["job_tag_ids_or"] = job_tag_ids_or
-        if job_must_not_have_tag_ids:
-            payload["job_must_not_have_tag_ids"] = job_must_not_have_tag_ids
-        if job_must_have_tag_ids:
-            payload["job_must_have_tag_ids"] = job_must_have_tag_ids
-        if job_location_radius_miles is not None:
-            payload["job_location_radius_miles"] = job_location_radius_miles
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
