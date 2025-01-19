@@ -2,12 +2,12 @@ from typing import Optional, List, Dict, Any
 import httpx
 
 # API configuration
-API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzeWVkaDc0NkBnbWFpbC5jb20iLCJwZXJtaXNzaW9ucyI6InVzZXIifQ.cJtZSwPE-3i9haqTB45BZ4tmU8Jg0UXypUgjHysiDY0"
+API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoYXNlZWJhY2t1cEBnbWFpbC5jb20iLCJwZXJtaXNzaW9ucyI6InVzZXIifQ.I7MRT6Omm_m3F2JXkNRVxIzi8InDp9vi588tWIfgtw8"
 API_URL = "https://api.theirstack.com/v1/jobs/search"
 
 async def search_jobs_service(
     page: int = 0,
-    limit: int = 10,
+    limit: int = 5,
     posted_at_max_age_days: int = 14,
     order_desc: bool = True,
     order_field: str = "date_posted",
